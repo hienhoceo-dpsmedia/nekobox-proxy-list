@@ -1,0 +1,36 @@
+name: Update NekoBox Proxy List
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 */4 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build subscription artifacts
+        run: |
+          npm test
+          npm run build
+
+      - name: Commit updated artifacts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dist README.md docs package.json scripts tests .github/workflows/update-proxy-list.yml
+          git diff --cached --quiet && exit 0
+          git commit -m "chore: refresh NekoBox US proxy subscription"
+          git push

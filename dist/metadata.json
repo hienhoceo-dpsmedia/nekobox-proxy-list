@@ -1,0 +1,18 @@
+{
+  "sourceUrl": "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/countries/US/data.json",
+  "country": "US",
+  "protocols": [
+    "http",
+    "https",
+    "socks4",
+    "socks5"
+  ],
+  "total": 682,
+  "protocolCounts": {
+    "http": 402,
+    "https": 0,
+    "socks4": 59,
+    "socks5": 221
+  },
+  "updatedAt": "2026-05-12T08:39:22.196Z"
+}

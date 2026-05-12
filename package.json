@@ -1,0 +1,9 @@
+{
+  "name": "nekobox-proxy-list",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node ./scripts/build-nekobox-subscription.mjs",
+    "test": "node --test"
+  }
+}
