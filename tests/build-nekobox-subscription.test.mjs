@@ -5,6 +5,7 @@ import {
   buildArtifacts,
   filterSupportedUsRecords,
   filterSupportedNonChinaRecords,
+  filterSocks5Only,
 } from "../scripts/build-nekobox-subscription.mjs";
 
 test("filterSupportedUsRecords keeps only supported US protocols and deduplicates proxy URIs", () => {
@@ -79,5 +80,19 @@ test("filterSupportedNonChinaRecords excludes CN, HK, MO, and TW while keeping s
     { proxy: "http://1.1.1.1:80", protocol: "http", geolocation: { country: "US" } },
     { proxy: "https://2.2.2.2:443", protocol: "https", geolocation: { country: "JP" } },
     { proxy: "socks5://7.7.7.7:1080", protocol: "socks5", geolocation: { country: "SG" } }
+  ]);
+});
+
+test("filterSocks5Only keeps only socks5 records and preserves order", () => {
+  const input = [
+    { proxy: "http://1.1.1.1:80", protocol: "http", geolocation: { country: "US" } },
+    { proxy: "socks5://2.2.2.2:1080", protocol: "socks5", geolocation: { country: "JP" } },
+    { proxy: "socks4://3.3.3.3:1080", protocol: "socks4", geolocation: { country: "SG" } },
+    { proxy: "socks5://4.4.4.4:1080", protocol: "socks5", geolocation: { country: "US" } }
+  ];
+
+  assert.deepEqual(filterSocks5Only(input), [
+    { proxy: "socks5://2.2.2.2:1080", protocol: "socks5", geolocation: { country: "JP" } },
+    { proxy: "socks5://4.4.4.4:1080", protocol: "socks5", geolocation: { country: "US" } }
   ]);
 });

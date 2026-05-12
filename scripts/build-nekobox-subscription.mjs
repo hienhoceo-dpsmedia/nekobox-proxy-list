@@ -71,6 +71,10 @@ export function filterSupportedNonChinaRecords(records) {
   return filtered;
 }
 
+export function filterSocks5Only(records) {
+  return records.filter((record) => record?.protocol === "socks5");
+}
+
 export function buildArtifacts(records, updatedAt = new Date().toISOString(), label = "US", sourceUrl = US_SOURCE_URL) {
   const linesByProtocol = {
     http: [],
@@ -177,6 +181,12 @@ export async function runBuild({
     "GLOBAL-NON-CHINA",
     allSourceUrl
   );
+  const nonChinaSocks5Artifacts = buildArtifacts(
+    filterSocks5Only(nonChinaFilteredRecords),
+    updatedAt,
+    "GLOBAL-NON-CHINA-SOCKS5",
+    allSourceUrl
+  );
 
   await writeArtifacts(usArtifacts, outDir);
   await Promise.all([
@@ -190,12 +200,28 @@ export async function runBuild({
       path.join(outDir, "metadata-global-excluding-cn-hk-mo-tw.json"),
       `${JSON.stringify(nonChinaArtifacts.metadata, null, 2)}\n`,
       "utf8"
+    ),
+    writeFile(
+      path.join(outDir, "nekobox-global-excluding-cn-hk-mo-tw-socks5.txt"),
+      `${nonChinaSocks5Artifacts.subscriptionText}\n`,
+      "utf8"
+    ),
+    writeFile(
+      path.join(outDir, "nekobox-global-excluding-cn-hk-mo-tw-socks5-base64.txt"),
+      `${nonChinaSocks5Artifacts.subscriptionBase64}\n`,
+      "utf8"
+    ),
+    writeFile(
+      path.join(outDir, "metadata-global-excluding-cn-hk-mo-tw-socks5.json"),
+      `${JSON.stringify(nonChinaSocks5Artifacts.metadata, null, 2)}\n`,
+      "utf8"
     )
   ]);
 
   return {
     usArtifacts,
-    nonChinaArtifacts
+    nonChinaArtifacts,
+    nonChinaSocks5Artifacts
   };
 }
 

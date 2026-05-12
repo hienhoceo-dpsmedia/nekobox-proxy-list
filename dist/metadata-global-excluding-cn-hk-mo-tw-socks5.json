@@ -1,17 +1,17 @@
 {
   "sourceUrl": "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/all/data.json",
-  "label": "GLOBAL-NON-CHINA",
+  "label": "GLOBAL-NON-CHINA-SOCKS5",
   "protocols": [
     "http",
     "https",
     "socks4",
     "socks5"
   ],
-  "total": 3609,
+  "total": 1023,
   "protocolCounts": {
-    "http": 1801,
+    "http": 0,
     "https": 0,
-    "socks4": 785,
+    "socks4": 0,
     "socks5": 1023
   },
   "updatedAt": "2026-05-12T09:29:28.154Z"
