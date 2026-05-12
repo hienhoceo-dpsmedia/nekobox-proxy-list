@@ -10,12 +10,22 @@ Use this URL in NekoBox for a base64 subscription:
 https://raw.githubusercontent.com/hienhoceo-dpsmedia/nekobox-proxy-list/main/dist/nekobox-us-base64.txt
 ```
 
+Additional base64 URL for all countries except `CN`, `HK`, `MO`, and `TW`:
+
+```text
+https://raw.githubusercontent.com/hienhoceo-dpsmedia/nekobox-proxy-list/main/dist/nekobox-global-excluding-cn-hk-mo-tw-base64.txt
+```
+
 ## Alternative URLs
 
 - Plain text subscription:
   `https://raw.githubusercontent.com/hienhoceo-dpsmedia/nekobox-proxy-list/main/dist/nekobox-us.txt`
+- Plain text subscription for all except `CN/HK/MO/TW`:
+  `https://raw.githubusercontent.com/hienhoceo-dpsmedia/nekobox-proxy-list/main/dist/nekobox-global-excluding-cn-hk-mo-tw.txt`
 - Metadata:
   `https://raw.githubusercontent.com/hienhoceo-dpsmedia/nekobox-proxy-list/main/dist/metadata.json`
+- Metadata for all except `CN/HK/MO/TW`:
+  `https://raw.githubusercontent.com/hienhoceo-dpsmedia/nekobox-proxy-list/main/dist/metadata-global-excluding-cn-hk-mo-tw.json`
 - jsDelivr mirror:
   `https://cdn.jsdelivr.net/gh/hienhoceo-dpsmedia/nekobox-proxy-list@main/dist/nekobox-us-base64.txt`
 
@@ -32,7 +42,10 @@ Only proxies tagged as `US` by upstream are included.
 
 - `dist/nekobox-us.txt`
 - `dist/nekobox-us-base64.txt`
+- `dist/nekobox-global-excluding-cn-hk-mo-tw.txt`
+- `dist/nekobox-global-excluding-cn-hk-mo-tw-base64.txt`
 - `dist/metadata.json`
+- `dist/metadata-global-excluding-cn-hk-mo-tw.json`
 - `dist/debug/http-us.txt`
 - `dist/debug/https-us.txt`
 - `dist/debug/socks4-us.txt`
@@ -41,8 +54,10 @@ Only proxies tagged as `US` by upstream are included.
 ## How It Works
 
 1. GitHub Actions fetches `proxies/countries/US/data.json` from upstream.
-2. The build script keeps only `http`, `https`, `socks4`, and `socks5`.
-3. Duplicate proxy URIs are removed.
+2. The build script also fetches `proxies/all/data.json` for the global non-China list.
+3. It keeps only `http`, `https`, `socks4`, and `socks5`.
+4. It removes `CN`, `HK`, `MO`, and `TW` from the global list.
+5. Duplicate proxy URIs are removed.
 4. The repo publishes:
    - a plain text subscription
    - a base64-encoded subscription

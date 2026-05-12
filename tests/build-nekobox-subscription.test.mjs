@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   buildArtifacts,
   filterSupportedUsRecords,
+  filterSupportedNonChinaRecords,
 } from "../scripts/build-nekobox-subscription.mjs";
 
 test("filterSupportedUsRecords keeps only supported US protocols and deduplicates proxy URIs", () => {
@@ -60,4 +61,23 @@ test("buildArtifacts emits plain text, base64, protocol debug splits, and metada
   });
   assert.equal(artifacts.metadata.total, 4);
   assert.equal(artifacts.metadata.updatedAt, "2026-05-12T16:00:00.000Z");
+});
+
+test("filterSupportedNonChinaRecords excludes CN, HK, MO, and TW while keeping supported protocols", () => {
+  const input = [
+    { proxy: "http://1.1.1.1:80", protocol: "http", geolocation: { country: "US" } },
+    { proxy: "https://2.2.2.2:443", protocol: "https", geolocation: { country: "JP" } },
+    { proxy: "socks4://3.3.3.3:1080", protocol: "socks4", geolocation: { country: "CN" } },
+    { proxy: "socks5://4.4.4.4:1080", protocol: "socks5", geolocation: { country: "HK" } },
+    { proxy: "http://5.5.5.5:80", protocol: "http", geolocation: { country: "MO" } },
+    { proxy: "https://6.6.6.6:443", protocol: "https", geolocation: { country: "TW" } },
+    { proxy: "socks5://7.7.7.7:1080", protocol: "socks5", geolocation: { country: "SG" } },
+    { proxy: "vmess://not-supported", protocol: "vmess", geolocation: { country: "US" } }
+  ];
+
+  assert.deepEqual(filterSupportedNonChinaRecords(input), [
+    { proxy: "http://1.1.1.1:80", protocol: "http", geolocation: { country: "US" } },
+    { proxy: "https://2.2.2.2:443", protocol: "https", geolocation: { country: "JP" } },
+    { proxy: "socks5://7.7.7.7:1080", protocol: "socks5", geolocation: { country: "SG" } }
+  ]);
 });
