@@ -1,6 +1,25 @@
 # NekoBox US Proxy List
 
+<p align="left">
+  <a href="https://github.com/hienhoceo-dpsmedia/nekobox-proxy-list/stargazers">
+    <img src="https://img.shields.io/github/stars/hienhoceo-dpsmedia/nekobox-proxy-list?style=flat-square&logo=github&color=gold&label=Stars" alt="GitHub Stars">
+  </a>
+  <a href="https://github.com/hienhoceo-dpsmedia/nekobox-proxy-list/network/members">
+    <img src="https://img.shields.io/github/forks/hienhoceo-dpsmedia/nekobox-proxy-list?style=flat-square&logo=github&color=blue&label=Forks" alt="GitHub Forks">
+  </a>
+  <a href="https://github.com/hienhoceo-dpsmedia/nekobox-proxy-list/actions/workflows/update-proxy-list.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/hienhoceo-dpsmedia/nekobox-proxy-list/update-proxy-list.yml?branch=main&style=flat-square&logo=github-actions&label=Auto-Updates" alt="Build Status">
+  </a>
+</p>
+
 Auto-updating U.S. proxy subscription for NekoBox, built from `proxifly/free-proxy-list`.
+
+> [!TIP]
+> **⭐ Support this project by giving it a Star!**
+> If you are using this subscription list, please consider clicking the **Star** button at the top right of this page. Your support helps keep the auto-update workflow running!
+>
+> **⭐ Hãy bấm Star ủng hộ dự án nhé!**
+> Nếu bạn đang sử dụng proxy list này, hãy nhấn **Star** ở góc trên bên phải để ủng hộ tác giả duy trì cập nhật tự động. Cảm ơn bạn rất nhiều!
 
 ## Main URL
 
