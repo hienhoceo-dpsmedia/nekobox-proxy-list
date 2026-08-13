@@ -41,7 +41,7 @@ Additional base64 URL for all countries except `CN`, `HK`, `MO`, and `TW`, with 
 https://raw.githubusercontent.com/hienhoceo-dpsmedia/nekobox-proxy-list/main/dist/nekobox-global-excluding-cn-hk-mo-tw-socks5-base64.txt
 ```
 
-China-only, live-checked base64 URL:
+Greater China (CN/TW/HK/MO), live-checked base64 URL:
 
 ```text
 https://raw.githubusercontent.com/hienhoceo-dpsmedia/nekobox-proxy-list/main/dist/nekobox-china-live-base64.txt
@@ -55,7 +55,7 @@ https://raw.githubusercontent.com/hienhoceo-dpsmedia/nekobox-proxy-list/main/dis
   `https://raw.githubusercontent.com/hienhoceo-dpsmedia/nekobox-proxy-list/main/dist/nekobox-global-excluding-cn-hk-mo-tw.txt`
 - Plain text subscription for all except `CN/HK/MO/TW`, `SOCKS5` only:
   `https://raw.githubusercontent.com/hienhoceo-dpsmedia/nekobox-proxy-list/main/dist/nekobox-global-excluding-cn-hk-mo-tw-socks5.txt`
-- Plain text subscription for China, live checked only:
+- Plain text subscription for Greater China (`CN/TW/HK/MO`), live checked only:
   `https://raw.githubusercontent.com/hienhoceo-dpsmedia/nekobox-proxy-list/main/dist/nekobox-china-live.txt`
 - Metadata:
   `https://raw.githubusercontent.com/hienhoceo-dpsmedia/nekobox-proxy-list/main/dist/metadata.json`
@@ -63,7 +63,7 @@ https://raw.githubusercontent.com/hienhoceo-dpsmedia/nekobox-proxy-list/main/dis
   `https://raw.githubusercontent.com/hienhoceo-dpsmedia/nekobox-proxy-list/main/dist/metadata-global-excluding-cn-hk-mo-tw.json`
 - Metadata for all except `CN/HK/MO/TW`, `SOCKS5` only:
   `https://raw.githubusercontent.com/hienhoceo-dpsmedia/nekobox-proxy-list/main/dist/metadata-global-excluding-cn-hk-mo-tw-socks5.json`
-- Metadata for China, live checked only:
+- Metadata for Greater China, live checked only:
   `https://raw.githubusercontent.com/hienhoceo-dpsmedia/nekobox-proxy-list/main/dist/metadata-china-live.json`
 - jsDelivr mirror:
   `https://cdn.jsdelivr.net/gh/hienhoceo-dpsmedia/nekobox-proxy-list@main/dist/nekobox-us-base64.txt`
@@ -75,7 +75,7 @@ https://raw.githubusercontent.com/hienhoceo-dpsmedia/nekobox-proxy-list/main/dis
 - SOCKS4
 - SOCKS5
 
-The U.S. subscription includes only proxies tagged as `US` by upstream. The China live URL includes only checked `CN` proxies.
+The U.S. subscription includes only proxies tagged as `US` by upstream. The Greater China live URL checks `CN`, `TW`, `HK`, and `MO` proxies across HTTP, HTTPS, SOCKS4, and SOCKS5.
 
 ## Output Files
 
@@ -100,8 +100,8 @@ The U.S. subscription includes only proxies tagged as `US` by upstream. The Chin
 ## How It Works
 
 1. GitHub Actions fetches `proxies/countries/US/data.json` from upstream.
-2. The build script fetches `proxies/countries/CN/data.json`, probes each supported proxy, and publishes only responsive China proxies.
-3. The build script also fetches `proxies/all/data.json` for the global non-China list.
+2. The build script filters `CN`, `TW`, `HK`, and `MO` candidates from `proxies/all/data.json`, then publishes only live proxies.
+3. The same source also produces the global non-China list.
 4. It keeps only `http`, `https`, `socks4`, and `socks5`.
 5. It removes `CN`, `HK`, `MO`, and `TW` from the global list.
 6. Duplicate proxy URIs are removed.
@@ -123,7 +123,7 @@ npm run build
 The workflow runs:
 
 - every 10 minutes
-- each China candidate is checked with a 5-second timeout before publishing
+- each Greater China candidate is checked with a 5-second timeout before publishing; every protocol must complete a TLS handshake and receive a successful HTTPS response
 - on manual `workflow_dispatch`
 
 ## Source

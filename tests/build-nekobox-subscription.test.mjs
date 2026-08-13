@@ -4,25 +4,45 @@ import assert from "node:assert/strict";
 import {
   buildArtifacts,
   filterLiveRecords,
-  filterSupportedChinaRecords,
+  filterSupportedGreaterChinaRecords,
   filterSupportedUsRecords,
   filterSupportedNonChinaRecords,
   filterSocks5Only,
+  isSuccessfulHttpConnectResponse,
+  isSuccessfulHttpsProbeResponse,
 } from "../scripts/build-nekobox-subscription.mjs";
 
-test("filterSupportedChinaRecords keeps only supported CN proxies and deduplicates proxy URIs", () => {
+test("filterSupportedGreaterChinaRecords keeps supported CN, TW, HK, and MO proxies across every protocol", () => {
   const input = [
     { proxy: "http://1.1.1.1:80", protocol: "http", geolocation: { country: "CN" } },
     { proxy: "http://1.1.1.1:80", protocol: "http", geolocation: { country: "CN" } },
-    { proxy: "socks5://2.2.2.2:1080", protocol: "socks5", geolocation: { country: "CN" } },
+    { proxy: "https://2.2.2.2:443", protocol: "https", geolocation: { country: "TW" } },
+    { proxy: "socks4://3.3.3.3:1080", protocol: "socks4", geolocation: { country: "HK" } },
+    { proxy: "socks5://4.4.4.4:1080", protocol: "socks5", geolocation: { country: "MO" } },
     { proxy: "vmess://not-supported", protocol: "vmess", geolocation: { country: "CN" } },
     { proxy: "http://3.3.3.3:80", protocol: "http", geolocation: { country: "US" } }
   ];
 
-  assert.deepEqual(filterSupportedChinaRecords(input), [
+  assert.deepEqual(filterSupportedGreaterChinaRecords(input), [
     { proxy: "http://1.1.1.1:80", protocol: "http", geolocation: { country: "CN" } },
-    { proxy: "socks5://2.2.2.2:1080", protocol: "socks5", geolocation: { country: "CN" } }
+    { proxy: "https://2.2.2.2:443", protocol: "https", geolocation: { country: "TW" } },
+    { proxy: "socks4://3.3.3.3:1080", protocol: "socks4", geolocation: { country: "HK" } },
+    { proxy: "socks5://4.4.4.4:1080", protocol: "socks5", geolocation: { country: "MO" } }
   ]);
+});
+
+test("isSuccessfulHttpConnectResponse accepts only successful CONNECT status lines", () => {
+  assert.equal(isSuccessfulHttpConnectResponse("HTTP/1.1 200 Connection established"), true);
+  assert.equal(isSuccessfulHttpConnectResponse("HTTP/1.0 204 No Content"), true);
+  assert.equal(isSuccessfulHttpConnectResponse("HTTP/1.1 400 Bad Request"), false);
+  assert.equal(isSuccessfulHttpConnectResponse("not an HTTP response"), false);
+});
+
+test("isSuccessfulHttpsProbeResponse accepts only successful HTTPS target responses", () => {
+  assert.equal(isSuccessfulHttpsProbeResponse("HTTP/1.1 200 OK"), true);
+  assert.equal(isSuccessfulHttpsProbeResponse("HTTP/1.1 302 Found"), true);
+  assert.equal(isSuccessfulHttpsProbeResponse("HTTP/1.1 503 Service Unavailable"), false);
+  assert.equal(isSuccessfulHttpsProbeResponse("not an HTTP response"), false);
 });
 
 test("filterLiveRecords keeps only proxies whose liveness probe succeeds", async () => {

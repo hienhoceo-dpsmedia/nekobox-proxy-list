@@ -1,21 +1,28 @@
 {
-  "sourceUrl": "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/countries/CN/data.json",
-  "label": "CHINA-LIVE",
+  "sourceUrl": "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/all/data.json",
+  "label": "GREATER-CHINA-LIVE",
   "protocols": [
     "http",
     "https",
     "socks4",
     "socks5"
   ],
-  "total": 4,
+  "total": 6,
   "protocolCounts": {
-    "http": 4,
+    "http": 2,
     "https": 0,
     "socks4": 0,
-    "socks5": 0
+    "socks5": 4
   },
-  "updatedAt": "2026-08-13T07:56:15.460Z",
+  "updatedAt": "2026-08-13T08:06:34.065Z",
   "liveOnly": true,
-  "probeUrl": "http://example.com/",
-  "probeTimeoutMs": 5000
+  "probeUrl": "https://example.com/",
+  "probeTimeoutMs": 5000,
+  "countries": [
+    "CN",
+    "HK",
+    "MO",
+    "TW"
+  ],
+  "livenessRequirement": "TLS handshake and HTTPS target response 2xx-3xx"
 }

@@ -1,6 +1,5 @@
-import http from "node:http";
-import https from "node:https";
 import net from "node:net";
+import tls from "node:tls";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,12 +7,10 @@ import { fileURLToPath } from "node:url";
 const SUPPORTED_PROTOCOLS = ["http", "https", "socks4", "socks5"];
 const US_SOURCE_URL =
   "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/countries/US/data.json";
-const CHINA_SOURCE_URL =
-  "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/countries/CN/data.json";
 const ALL_SOURCE_URL =
   "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/all/data.json";
-const EXCLUDED_GREATER_CHINA_COUNTRIES = new Set(["CN", "HK", "MO", "TW"]);
-const LIVE_PROBE_URL = new URL("http://example.com/");
+const GREATER_CHINA_COUNTRIES = new Set(["CN", "HK", "MO", "TW"]);
+const LIVE_PROBE_URL = new URL("https://example.com/");
 const LIVE_PROBE_TIMEOUT_MS = 5_000;
 
 function isCountryRecord(record, country) {
@@ -56,8 +53,25 @@ function filterSupportedCountryRecords(records, country) {
   return filtered;
 }
 
-export function filterSupportedChinaRecords(records) {
-  return filterSupportedCountryRecords(records, "CN");
+export function filterSupportedGreaterChinaRecords(records) {
+  const seen = new Set();
+  const filtered = [];
+
+  for (const record of records) {
+    if (
+      !GREATER_CHINA_COUNTRIES.has(record?.geolocation?.country) ||
+      !isSupportedProtocol(record) ||
+      typeof record?.proxy !== "string" ||
+      seen.has(record.proxy)
+    ) {
+      continue;
+    }
+
+    seen.add(record.proxy);
+    filtered.push(record);
+  }
+
+  return filtered;
 }
 
 export function filterSupportedNonChinaRecords(records) {
@@ -68,7 +82,7 @@ export function filterSupportedNonChinaRecords(records) {
     const country = record?.geolocation?.country;
     if (
       !country ||
-      EXCLUDED_GREATER_CHINA_COUNTRIES.has(country) ||
+      GREATER_CHINA_COUNTRIES.has(country) ||
       !isSupportedProtocol(record) ||
       typeof record?.proxy !== "string"
     ) {
@@ -110,6 +124,114 @@ function connectToProxy(proxyUrl, timeoutMs) {
       resolve(socket);
     });
   });
+}
+
+function connectToHttpsProxy(proxyUrl, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const socket = tls.connect({
+      host: proxyUrl.hostname,
+      port: Number(proxyUrl.port) || 443,
+      servername: proxyUrl.hostname
+    });
+
+    const fail = (error) => {
+      socket.destroy();
+      reject(error);
+    };
+
+    socket.setTimeout(timeoutMs, () => fail(new Error("HTTPS proxy connection timed out")));
+    socket.once("error", fail);
+    socket.once("secureConnect", () => {
+      socket.setTimeout(0);
+      socket.removeListener("error", fail);
+      resolve(socket);
+    });
+  });
+}
+
+function waitForHttpResponse(socket, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    let buffer = Buffer.alloc(0);
+    const timeout = setTimeout(() => onError(new Error("HTTP response timed out")), timeoutMs);
+
+    const cleanup = () => {
+      clearTimeout(timeout);
+      socket.removeListener("data", onData);
+      socket.removeListener("error", onError);
+      socket.removeListener("close", onClose);
+    };
+    const onError = (error) => {
+      cleanup();
+      reject(error);
+    };
+    const onClose = () => onError(new Error("HTTP proxy closed the connection"));
+    const onData = (chunk) => {
+      buffer = Buffer.concat([buffer, chunk]);
+      const headerEnd = buffer.indexOf("\r\n\r\n");
+      if (headerEnd === -1) {
+        return;
+      }
+
+      cleanup();
+      resolve(buffer.subarray(0, headerEnd).toString("ascii").split("\r\n", 1)[0]);
+    };
+
+    socket.on("data", onData);
+    socket.once("error", onError);
+    socket.once("close", onClose);
+  });
+}
+
+export function isSuccessfulHttpConnectResponse(statusLine) {
+  return /^HTTP\/1\.[01]\s+2\d\d\b/i.test(statusLine);
+}
+
+export function isSuccessfulHttpsProbeResponse(statusLine) {
+  return /^HTTP\/1\.[01]\s+[23]\d\d\b/i.test(statusLine);
+}
+
+function upgradeConnectionToTls(socket, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const secureSocket = tls.connect({
+      socket,
+      servername: LIVE_PROBE_URL.hostname
+    });
+    const timeout = setTimeout(() => fail(new Error("HTTPS target handshake timed out")), timeoutMs);
+
+    const cleanup = () => {
+      clearTimeout(timeout);
+      secureSocket.removeListener("error", fail);
+      secureSocket.removeListener("close", onClose);
+    };
+    const fail = (error) => {
+      cleanup();
+      secureSocket.destroy();
+      reject(error);
+    };
+    const onClose = () => fail(new Error("HTTPS target closed the connection"));
+
+    secureSocket.once("error", fail);
+    secureSocket.once("close", onClose);
+    secureSocket.once("secureConnect", () => {
+      cleanup();
+      resolve(secureSocket);
+    });
+  });
+}
+
+async function probeHttpsTarget(socket, timeoutMs) {
+  const secureSocket = await upgradeConnectionToTls(socket, timeoutMs);
+  try {
+    secureSocket.write(
+      `GET ${LIVE_PROBE_URL.pathname} HTTP/1.1\r\n` +
+        `Host: ${LIVE_PROBE_URL.host}\r\n` +
+        "User-Agent: nekobox-proxy-list-liveness-check\r\n" +
+        "Connection: close\r\n\r\n"
+    );
+    return isSuccessfulHttpsProbeResponse(await waitForHttpResponse(secureSocket, timeoutMs));
+  } finally {
+    secureSocket.destroy();
+  }
 }
 
 function waitForSocks5Greeting(socket, timeoutMs) {
@@ -221,52 +343,35 @@ function waitForSocks4Reply(socket, timeoutMs) {
 
 async function probeHttpProxy(record, timeoutMs) {
   const proxyUrl = new URL(record.proxy);
-  return new Promise((resolve) => {
-    let finished = false;
-    const finish = (isLive) => {
-      if (finished) {
-        return;
-      }
-
-      finished = true;
-      request.destroy();
-      resolve(isLive);
-    };
-
-    const request = (record.protocol === "https" ? https : http).request(
-      {
-        hostname: proxyUrl.hostname,
-        port: Number(proxyUrl.port) || (record.protocol === "https" ? 443 : 80),
-        method: "GET",
-        path: LIVE_PROBE_URL.href,
-        headers: {
-          host: LIVE_PROBE_URL.host,
-          "user-agent": "nekobox-proxy-list-liveness-check"
-        },
-        timeout: timeoutMs
-      },
-      (response) => {
-        response.resume();
-        const isLive = response.statusCode >= 200 && response.statusCode < 400;
-        response.once("error", () => finish(false));
-        response.once("end", () => finish(isLive));
-      }
+  const socket =
+    record.protocol === "https"
+      ? await connectToHttpsProxy(proxyUrl, timeoutMs)
+      : await connectToProxy(proxyUrl, timeoutMs);
+  try {
+    socket.write(
+      `CONNECT ${LIVE_PROBE_URL.hostname}:${LIVE_PROBE_URL.port} HTTP/1.1\r\n` +
+        `Host: ${LIVE_PROBE_URL.host}\r\n` +
+        "User-Agent: nekobox-proxy-list-liveness-check\r\n" +
+        "Connection: close\r\n\r\n"
     );
-
-    request.once("error", () => finish(false));
-    request.once("timeout", () => finish(false));
-    request.end();
-  });
+    const responseLine = await waitForHttpResponse(socket, timeoutMs);
+    return (
+      isSuccessfulHttpConnectResponse(responseLine) &&
+      (await probeHttpsTarget(socket, timeoutMs))
+    );
+  } finally {
+    socket.destroy();
+  }
 }
 
 async function probeSocks4Proxy(record, timeoutMs) {
   const proxyUrl = new URL(record.proxy);
   const socket = await connectToProxy(proxyUrl, timeoutMs);
   try {
-    const request = Buffer.from([4, 1, 0, 80, 93, 184, 216, 34, 0]);
+    const request = Buffer.from([4, 1, 1, 187, 93, 184, 216, 34, 0]);
     socket.write(request);
     const response = await waitForSocks4Reply(socket, timeoutMs);
-    return response[0] === 0 && response[1] === 90;
+    return response[0] === 0 && response[1] === 90 && (await probeHttpsTarget(socket, timeoutMs));
   } finally {
     socket.destroy();
   }
@@ -287,11 +392,11 @@ async function probeSocks5Proxy(record, timeoutMs) {
       Buffer.concat([
         Buffer.from([5, 1, 0, 3, hostname.length]),
         hostname,
-        Buffer.from([0, 80])
+        Buffer.from([1, 187])
       ])
     );
     const response = await waitForSocks5Reply(socket, timeoutMs);
-    return response[0] === 5 && response[1] === 0;
+    return response[0] === 5 && response[1] === 0 && (await probeHttpsTarget(socket, timeoutMs));
   } finally {
     socket.destroy();
   }
@@ -424,7 +529,7 @@ async function writeArtifacts(artifacts, outDir) {
   ]);
 }
 
-async function writeChinaLiveArtifacts(artifacts, outDir) {
+async function writeGreaterChinaLiveArtifacts(artifacts, outDir) {
   await mkdir(path.join(outDir, "debug"), { recursive: true });
 
   await Promise.all([
@@ -453,34 +558,34 @@ async function writeChinaLiveArtifacts(artifacts, outDir) {
 
 export async function runBuild({
   usSourceUrl = US_SOURCE_URL,
-  chinaSourceUrl = CHINA_SOURCE_URL,
   allSourceUrl = ALL_SOURCE_URL,
   outDir = path.resolve(process.cwd(), "dist"),
   updatedAt = new Date().toISOString(),
   liveProbe = probeLiveProxy
 } = {}) {
-  const [usRawRecords, chinaRawRecords, allRawRecords] = await Promise.all([
+  const [usRawRecords, allRawRecords] = await Promise.all([
     fetchSourceRecords(usSourceUrl),
-    fetchSourceRecords(chinaSourceUrl),
     fetchSourceRecords(allSourceUrl)
   ]);
   const usFilteredRecords = filterSupportedUsRecords(usRawRecords);
-  const chinaLiveRecords = await filterLiveRecords(
-    filterSupportedChinaRecords(chinaRawRecords),
+  const greaterChinaLiveRecords = await filterLiveRecords(
+    filterSupportedGreaterChinaRecords(allRawRecords),
     liveProbe
   );
   const nonChinaFilteredRecords = filterSupportedNonChinaRecords(allRawRecords);
 
   const usArtifacts = buildArtifacts(usFilteredRecords, updatedAt, "US", usSourceUrl);
-  const chinaLiveArtifacts = buildArtifacts(
-    chinaLiveRecords,
+  const greaterChinaLiveArtifacts = buildArtifacts(
+    greaterChinaLiveRecords,
     updatedAt,
-    "CHINA-LIVE",
-    chinaSourceUrl,
+    "GREATER-CHINA-LIVE",
+    allSourceUrl,
     {
       liveOnly: true,
       probeUrl: LIVE_PROBE_URL.href,
-      probeTimeoutMs: LIVE_PROBE_TIMEOUT_MS
+      probeTimeoutMs: LIVE_PROBE_TIMEOUT_MS,
+      countries: [...GREATER_CHINA_COUNTRIES],
+      livenessRequirement: "TLS handshake and HTTPS target response 2xx-3xx"
     }
   );
   const nonChinaArtifacts = buildArtifacts(
@@ -497,7 +602,7 @@ export async function runBuild({
   );
 
   await writeArtifacts(usArtifacts, outDir);
-  await writeChinaLiveArtifacts(chinaLiveArtifacts, outDir);
+  await writeGreaterChinaLiveArtifacts(greaterChinaLiveArtifacts, outDir);
   await Promise.all([
     writeFile(path.join(outDir, "nekobox-global-excluding-cn-hk-mo-tw.txt"), `${nonChinaArtifacts.subscriptionText}\n`, "utf8"),
     writeFile(
@@ -529,7 +634,7 @@ export async function runBuild({
 
   return {
     usArtifacts,
-    chinaLiveArtifacts,
+    greaterChinaLiveArtifacts,
     nonChinaArtifacts,
     nonChinaSocks5Artifacts
   };
