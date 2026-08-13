@@ -3,10 +3,47 @@ import assert from "node:assert/strict";
 
 import {
   buildArtifacts,
+  filterLiveRecords,
+  filterSupportedChinaRecords,
   filterSupportedUsRecords,
   filterSupportedNonChinaRecords,
   filterSocks5Only,
 } from "../scripts/build-nekobox-subscription.mjs";
+
+test("filterSupportedChinaRecords keeps only supported CN proxies and deduplicates proxy URIs", () => {
+  const input = [
+    { proxy: "http://1.1.1.1:80", protocol: "http", geolocation: { country: "CN" } },
+    { proxy: "http://1.1.1.1:80", protocol: "http", geolocation: { country: "CN" } },
+    { proxy: "socks5://2.2.2.2:1080", protocol: "socks5", geolocation: { country: "CN" } },
+    { proxy: "vmess://not-supported", protocol: "vmess", geolocation: { country: "CN" } },
+    { proxy: "http://3.3.3.3:80", protocol: "http", geolocation: { country: "US" } }
+  ];
+
+  assert.deepEqual(filterSupportedChinaRecords(input), [
+    { proxy: "http://1.1.1.1:80", protocol: "http", geolocation: { country: "CN" } },
+    { proxy: "socks5://2.2.2.2:1080", protocol: "socks5", geolocation: { country: "CN" } }
+  ]);
+});
+
+test("filterLiveRecords keeps only proxies whose liveness probe succeeds", async () => {
+  const records = [
+    { proxy: "http://live.example:80", protocol: "http", geolocation: { country: "CN" } },
+    { proxy: "socks5://down.example:1080", protocol: "socks5", geolocation: { country: "CN" } },
+    { proxy: "http://live-two.example:8080", protocol: "http", geolocation: { country: "CN" } }
+  ];
+  const probed = [];
+
+  const liveRecords = await filterLiveRecords(records, async (record) => {
+    probed.push(record.proxy);
+    if (record.proxy.includes("down")) {
+      throw new Error("connection refused");
+    }
+    return record.proxy.includes("live");
+  });
+
+  assert.deepEqual(probed, records.map((record) => record.proxy));
+  assert.deepEqual(liveRecords, [records[0], records[2]]);
+});
 
 test("filterSupportedUsRecords keeps only supported US protocols and deduplicates proxy URIs", () => {
   const input = [

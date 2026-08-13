@@ -1,0 +1,21 @@
+{
+  "sourceUrl": "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/countries/CN/data.json",
+  "label": "CHINA-LIVE",
+  "protocols": [
+    "http",
+    "https",
+    "socks4",
+    "socks5"
+  ],
+  "total": 5,
+  "protocolCounts": {
+    "http": 5,
+    "https": 0,
+    "socks4": 0,
+    "socks5": 0
+  },
+  "updatedAt": "2026-08-13T07:55:33.132Z",
+  "liveOnly": true,
+  "probeUrl": "http://example.com/",
+  "probeTimeoutMs": 5000
+}
