@@ -14,7 +14,7 @@
     "socks4": 0,
     "socks5": 4
   },
-  "updatedAt": "2026-08-17T19:36:50.183Z",
+  "updatedAt": "2026-08-17T19:56:55.187Z",
   "liveOnly": true,
   "probeUrl": "https://example.com/",
   "probeTimeoutMs": 5000,
