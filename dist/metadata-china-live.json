@@ -9,12 +9,12 @@
   ],
   "total": 18,
   "protocolCounts": {
-    "http": 12,
+    "http": 8,
     "https": 0,
     "socks4": 0,
-    "socks5": 6
+    "socks5": 10
   },
-  "updatedAt": "2026-08-19T18:50:32.791Z",
+  "updatedAt": "2026-08-19T19:25:05.054Z",
   "liveOnly": true,
   "probeUrl": "https://example.com/",
   "probeTimeoutMs": 5000,
