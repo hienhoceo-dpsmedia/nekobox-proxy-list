@@ -9,10 +9,10 @@
   ],
   "total": 716,
   "protocolCounts": {
-    "http": 549,
+    "http": 550,
     "https": 0,
-    "socks4": 144,
-    "socks5": 23
+    "socks4": 141,
+    "socks5": 25
   },
-  "updatedAt": "2026-08-23T15:33:26.903Z"
+  "updatedAt": "2026-08-23T15:54:39.725Z"
 }
