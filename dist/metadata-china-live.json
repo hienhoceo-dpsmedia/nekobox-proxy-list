@@ -7,14 +7,14 @@
     "socks4",
     "socks5"
   ],
-  "total": 5,
+  "total": 8,
   "protocolCounts": {
     "http": 3,
     "https": 0,
     "socks4": 0,
-    "socks5": 2
+    "socks5": 5
   },
-  "updatedAt": "2026-08-29T19:59:59.359Z",
+  "updatedAt": "2026-08-29T22:36:04.934Z",
   "liveOnly": true,
   "probeUrl": "https://example.com/",
   "probeTimeoutMs": 5000,
