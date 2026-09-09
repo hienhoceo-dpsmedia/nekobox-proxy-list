@@ -7,12 +7,12 @@
     "socks4",
     "socks5"
   ],
-  "total": 731,
+  "total": 673,
   "protocolCounts": {
-    "http": 486,
+    "http": 471,
     "https": 0,
-    "socks4": 171,
-    "socks5": 74
+    "socks4": 159,
+    "socks5": 43
   },
-  "updatedAt": "2026-09-09T00:42:27.676Z"
+  "updatedAt": "2026-09-09T05:22:38.121Z"
 }
